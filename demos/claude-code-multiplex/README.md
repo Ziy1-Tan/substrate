@@ -93,7 +93,43 @@ Env vars:
 
 `GET /healthz` reports whether the kube client picked up a cluster context (`logs:true|false`) — useful for quick smoke-tests after starting the server.
 
-### 3. Drive the demo
+### 3. Create the agents and allow their egress
+
+The deploy step creates the templates; the agents themselves are actors you create by name. Create one per template:
+
+```bash
+kubectl ate create actor agent-luna -a claude-multiplex-demo --template agent-luna
+kubectl ate create actor agent-mars -a claude-multiplex-demo --template agent-mars
+kubectl ate create actor agent-orion -a claude-multiplex-demo --template agent-orion
+```
+
+Each agent starts suspended. Resuming one binds it to a worker pod; a suspended agent also resumes on its own once a request reaches it through the router, so an explicit resume is optional.
+
+Every actor starts without an egress policy, and the egress gateway denies all traffic from an actor with no policy — including the calls the workload makes to the Anthropic API, so without this next step every `claude --print` tick fails with `API Error: 403 egress denied`. Allow the API per agent:
+
+```bash
+cat <<'EOF' | kubectl ate create egress-policy agent-luna -a claude-multiplex-demo -f -
+rules:
+- https:
+    hostnames: ["api.anthropic.com"]
+EOF
+```
+
+(repeat for `agent-mars` and `agent-orion`). The dashboard's "Give a task" button does not create actors or policies either — it drives whatever actors exist — so both steps above are needed before the demo can run.
+
+Where Claude Code reaches the API through a proxy instead (say `ANTHROPIC_BASE_URL=http://proxy.internal:8080`), the rule must match that destination's protocol and port, and a plain-HTTP proxy needs an `http` rule:
+
+```yaml
+rules:
+- http:
+    hostnames: ["proxy.internal"]
+    ports:
+      numbers: [8080]
+```
+
+Note the gateway rejects two rules that tie on the same hostname pattern and the same ports — `http: ["*"]` on all ports together with `https: ["*"]` on all ports, for instance — so give each protocol its own port selection rather than two allow-everything rules.
+
+### 4. Drive the demo
 
 Click "Give a task". The UI picks a random idle agent and creates a task for it. Watch:
 
