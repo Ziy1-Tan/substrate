@@ -43,6 +43,8 @@ This command will:
 Inspect the template with:
 ```bash
 kubectl ate get actor-template sandbox-template -a ate-demo-sandbox
+# micro-VM variant:
+kubectl ate get actor-template sandbox-microvm -a ate-demo-sandbox-microvm
 ```
 
 #### Micro-VM variant
@@ -59,10 +61,14 @@ atespace, with the pool's workers on micro-VM (`ateworker-microvm`) and the temp
 naming the cluster-wide `microvm` SandboxConfig. That config comes from
 `hack/install-microvm-deps.sh --install`, which has to have run first. The
 sandbox class is the only difference: the client, the commands, and the
-suspend/resume behavior are the same, so substitute
+suspend/resume behavior are the same. The template name differs from the
+gVisor variant's, so where the walkthrough below names `sandbox-template` or
+`ate-demo-sandbox`, name `sandbox-microvm` in `ate-demo-sandbox-microvm`
+instead — for example, step 2 becomes:
 
-- `--atespace=ate-demo-sandbox-microvm` in the client invocation below,
-- `-a ate-demo-sandbox-microvm` where the actor commands name the atespace.
+```bash
+kubectl ate create actor my-sandbox-1 -a ate-demo-sandbox-microvm --template sandbox-microvm
+```
 
 ### 2. Create a Sandbox Actor
 
